@@ -118,37 +118,42 @@ Phase 1 must be complete and its tests passing. Word selection remains separate 
 
 - `word_manager.py` — loading, validation, and difficulty-based selection.
 - `words/easy.txt`, `words/medium.txt`, `words/hard.txt` — vocabulary.
+- `words/README.md` — generated-list provenance, word counts, difficulty criteria, and loader behavior.
 - `tests/test_words.py` — word management tests.
 - `game.py`, `tests/test_game.py` — integration boundary and regression checks.
 - `TODO.md` — vocabulary decisions and verified progress.
 
 ### Tasks
 
-- [ ] Populate nonempty Easy, Medium, and Hard word lists using assignment-provided vocabulary when supplied; otherwise document the chosen vocabulary sources and difficulty criteria.
-- [ ] Store one word per line in each difficulty file.
-- [ ] Implement word loading in `word_manager.py` without depending on Flask or browser code.
-- [ ] Resolve word-file paths relative to the project/module location rather than the caller's working directory.
-- [ ] Trim line whitespace, normalize words to lowercase, ignore blank lines, and remove duplicates within each list.
-- [ ] Validate that accepted words contain only ASCII letters; report invalid entries clearly.
-- [ ] Handle missing files and lists with no usable words with clear errors rather than starting an unplayable game.
-- [ ] Support only `easy`, `medium`, and `hard`; reject missing or invalid difficulty values instead of silently selecting another list.
-- [ ] Select a random word from the requested difficulty so the Flask server can supply it to a new `HangmanGame` in Phase 3; keep word-file loading outside the engine.
-- [ ] Add tests for loading, validation, failures, and selection by difficulty.
+- [x] Populate nonempty Easy, Medium, and Hard word lists using assignment-provided vocabulary when supplied; otherwise document the chosen vocabulary sources and difficulty criteria.
+- [x] Store one word per line in each difficulty file.
+- [x] Implement word loading in `word_manager.py` without depending on Flask or browser code.
+- [x] Resolve word-file paths relative to the project/module location rather than the caller's working directory.
+- [x] Trim line whitespace, normalize words to lowercase, ignore blank lines, and remove duplicates within each list.
+- [x] Validate that accepted words contain only ASCII letters; report invalid entries clearly.
+- [x] Handle missing files and lists with no usable words with clear errors rather than starting an unplayable game.
+- [x] Support only `easy`, `medium`, and `hard`, normalizing case consistently with the engine; reject missing or invalid difficulty values instead of silently selecting another list.
+- [x] Select a random word from the requested difficulty so the Flask server can supply it to a new `HangmanGame` in Phase 3; keep word-file loading outside the engine.
+- [x] Add tests for loading, validation, failures, and selection by difficulty.
 
 ### Testing Requirements
 
-- [ ] Verify the actual three lists are nonempty and contain usable words after validation.
-- [ ] Use temporary test lists to verify normalization, blank-line handling, deduplication, and invalid entries.
-- [ ] Verify missing and empty files and invalid difficulty values produce clear failures.
-- [ ] Verify selected words belong to the requested list using controlled randomness where needed; do not require consecutive random choices to differ.
-- [ ] Verify selection works when launched from another working directory.
-- [ ] Run `python -m pytest tests/test_game.py tests/test_words.py` successfully.
+- [x] Verify the actual three lists are nonempty and contain usable words after validation.
+- [x] Use temporary test lists to verify normalization, blank-line handling, deduplication, and invalid entries.
+- [x] Verify missing and empty files and invalid difficulty values produce clear failures.
+- [x] Verify selected words belong to the requested list using controlled randomness where needed; do not require consecutive random choices to differ.
+- [x] Verify selection works when launched from another working directory.
+- [x] Run `python -m pytest tests/test_game.py tests/test_words.py` successfully.
 
 ### Completion Criteria
 
-- [ ] Each difficulty reliably supplies a valid word for a new game.
-- [ ] Loading and selection behavior is tested, with no dependence on HTTP or the browser.
-- [ ] Phase 1 and Phase 2 tests pass together.
+- [x] Each difficulty reliably supplies a valid word for a new game.
+- [x] Loading and selection behavior is tested, with no dependence on HTTP or the browser.
+- [x] Phase 1 and Phase 2 tests pass together.
+
+The three files were empty when Phase 2 began. Newly generated common English vocabulary was added for this student's implementation: **169 Easy words (3–5 letters), 156 Medium words (6–8), and 181 Hard words (9–12)**. These are not the instructor's original lists. [words/README.md](words/README.md) records their provenance and difficulty criteria. Loading preserves supplied files, ignores blanks, normalizes and deduplicates in memory, and rejects an entire list if any entry is invalid.
+
+Verified on 2026-10-26 using Python 3.13.1 and pytest 9.1.1: `.venv/bin/python -m pytest tests/test_game.py tests/test_words.py` — **141 passed (76 engine tests and 65 word-management tests)**. A separate loading/engine check launched from `/private/tmp` with site-packages disabled passed for all three difficulties and confirmed that active game state omits the selected answer. Phase 3 and later work remains unchecked.
 
 ## Phase 3: Flask REST Server
 
