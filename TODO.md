@@ -165,43 +165,52 @@ Phases 1 and 2 must be complete and their tests passing. Flask combines the test
 
 - `server.py` — Flask application, request validation, game storage, and routes.
 - `game.py`, `word_manager.py`, `words/*.txt` — existing backend components.
-- `tests/test_api.py` — Flask API tests.
-- `tests/conftest.py` — shared fixtures if needed.
+- `tests/test_api.py` — Flask API tests and isolated application/vocabulary fixtures.
 - `requirements.txt`, `TODO.md` — dependencies and verified progress.
 
 ### Tasks
 
-- [ ] Create a Flask application that can be instantiated with isolated storage and controlled test vocabulary.
-- [ ] Store games on the server in memory and generate unique, opaque game IDs; never derive IDs from the hidden word.
-- [ ] Keep games independent; creating or guessing in one game must not alter another.
-- [ ] Implement `POST /api/games` with a JSON `difficulty` field and return `201` with `game_id` and safe initial state.
-- [ ] Implement `GET /api/games/{game_id}` and return `200` with the current safe state without modifying the game.
-- [ ] Implement `POST /api/games/{game_id}/guess` with a JSON `letter` field and return `200` with updated safe state.
-- [ ] Preserve `pattern`, `guessed_letters`, `incorrect_letters`, `remaining_guesses`, and `status`; use the same state meanings across all three endpoints.
-- [ ] Return `400` for invalid difficulty, missing or invalid fields, duplicate guesses, and guesses after completion; leave the game unchanged on rejected guesses.
-- [ ] Return `404` for unknown game IDs and consistent JSON error responses for API failures.
-- [ ] Return `400` for malformed JSON, non-object JSON, and empty JSON bodies; return `415` for unsupported or missing JSON content types on POST requests.
-- [ ] Accept only the documented request fields; return `400` for unexpected fields, including client-supplied words or rule overrides.
-- [ ] Use the safe serializer for responses; include `word` only when `status` is `won` or `lost`.
-- [ ] Return `405` for unsupported methods and consistent JSON errors for API validation and routing failures; avoid HTML error pages in API responses.
-- [ ] Keep word files outside publicly served static assets and avoid including hidden answers in errors or debugging responses.
-- [ ] Add API tests alongside each endpoint.
+- [x] Create a Flask application that can be instantiated with isolated storage and controlled test vocabulary.
+- [x] Export the application as `app`, support local startup with `python server.py`, and verify the one-worker Gunicorn entry point with debug disabled.
+- [x] Serve the existing `static/index.html` at `/` and existing assets at `/static/` without implementing the Phase 4 frontend.
+- [x] Store games on the server in memory and generate unique, opaque game IDs; never derive IDs from the hidden word.
+- [x] Keep games independent; creating or guessing in one game must not alter another.
+- [x] Implement `POST /api/games` with a JSON `difficulty` field and return `201` with `game_id`, normalized `difficulty`, and safe initial state.
+- [x] Implement `GET /api/games/{game_id}` and return `200` with the current safe state without modifying the game.
+- [x] Implement `POST /api/games/{game_id}/guess` with a JSON `letter` field and return `200` with updated safe state.
+- [x] Preserve `pattern`, `guessed_letters`, `incorrect_letters`, `remaining_guesses`, and `status`; return `game_id` and `difficulty` consistently across all three endpoints.
+- [x] Return `400` for invalid difficulty, missing or invalid fields, duplicate guesses, and guesses after completion; leave the game unchanged on rejected guesses.
+- [x] Return `404` for unknown game IDs and consistent JSON error responses for API failures.
+- [x] Return `400` for malformed JSON, non-object JSON, and empty JSON bodies; return `415` for unsupported or missing JSON content types on POST requests.
+- [x] Accept only the documented request fields; return `400` for unexpected fields, including client-supplied words or rule overrides.
+- [x] Use the safe serializer for responses; include `word` only when `status` is `won` or `lost`.
+- [x] Return `405` for unsupported methods and consistent JSON errors for API validation and routing failures; avoid HTML error pages in API responses.
+- [x] Keep word files outside publicly served static assets and avoid including hidden answers in errors or debugging responses.
+- [x] Add API tests alongside each endpoint.
 
 ### Testing Requirements
 
-- [ ] Use Flask's test client to test all three endpoints, JSON field types, status codes, and all three difficulties.
-- [ ] Test missing fields, malformed/non-object/empty JSON, unsupported content types, invalid difficulty, invalid letters, duplicates, unknown game IDs, and unsupported methods.
-- [ ] Use server-side test fixtures with known words to exercise complete win and loss paths without adding a public answer-selection feature.
-- [ ] Create two games and verify ID uniqueness, state independence, and safe retrieval before and after guesses.
-- [ ] Verify invalid requests do not consume attempts and finished games cannot change.
-- [ ] Verify active create/get/guess responses and errors omit the answer; verify completed get/guess responses reveal it.
-- [ ] Run all engine, word management, and API tests successfully; manually exercise a complete game using HTTP requests.
+- [x] Use Flask's test client to test all three endpoints, JSON field types, status codes, and all three difficulties.
+- [x] Test missing fields, malformed/non-object/empty JSON, unsupported content types, invalid difficulty, invalid letters, duplicates, unknown game IDs, and unsupported methods.
+- [x] Use server-side test fixtures with known words to exercise complete win and loss paths without adding a public answer-selection feature.
+- [x] Create two games and verify ID uniqueness, state independence, and safe retrieval before and after guesses.
+- [x] Verify invalid requests do not consume attempts and finished games cannot change.
+- [x] Verify active create/get/guess responses and errors omit the answer; verify completed get/guess responses reveal it.
+- [x] Run all engine, word management, and API tests successfully; manually exercise a complete game using HTTP requests.
 
 ### Completion Criteria
 
-- [ ] A full game can be created, inspected, and completed through the original three-endpoint REST contract.
-- [ ] All API success and failure responses use the documented JSON and HTTP behavior.
-- [ ] Backend tests pass, independent games work, and active-game answers remain server-side.
+- [x] A full game can be created, inspected, and completed through the original three-endpoint REST contract.
+- [x] All API success and failure responses use the documented JSON and HTTP behavior.
+- [x] Backend tests pass, independent games work, and active-game answers remain server-side.
+
+Implementation: `create_app(config=None, word_manager=None)` creates independent per-app game storage and supports controlled server-side vocabulary fixtures. The factory's `word_manager` argument is keyword-only. Module-level `app` is the Gunicorn entry point. Creation selects a word through `WordManager`, creates a `HangmanGame`, and assigns a UUID-based ID with collision protection. A lock protects dictionary operations and game-state snapshots/updates within the process. Responses combine game ID and difficulty with `HangmanGame.to_state()`; no private game fields are serialized directly.
+
+Validation: POST bodies must be JSON objects containing only the required `difficulty` or `letter` field. Difficulty case is normalized; the engine validates letters and rejects duplicate and post-game guesses. Invalid bodies/fields/guesses return `400`, unknown games return `404`, unsupported methods return `405` with their `Allow` header, and unsupported content types return `415`. Unknown game IDs are checked before parsing guess bodies. API failures use `{"error": "message"}` JSON, unexpected server errors use a generic `500` message, and API responses carry `Cache-Control: no-store`.
+
+Verified on 2026-10-26 using Python 3.13.1, Flask 3.1.3, and pytest 9.1.1: `.venv/bin/python -m pytest tests/test_game.py tests/test_words.py tests/test_api.py` — **240 passed (76 engine, 65 word-management, and 99 API tests)**. Real local HTTP checks passed for both `python server.py` and Gunicorn 26.2.0 with one worker, including complete games, GET state retrieval, answer omission during play, answer disclosure after completion, rejection of post-game guesses, malformed JSON, unknown IDs, and existing static-file routing. Both temporary server processes were stopped after verification.
+
+Local startup: `.venv/bin/python server.py` (loopback port 5000, or the `PORT` environment variable). Production entry point: `.venv/bin/gunicorn --workers 1 --bind 0.0.0.0:$PORT server:app`. Keep one worker and one instance while game storage is process-local; games are lost on restart. The root currently serves the unchanged empty HTML placeholder. Phase 4 and later tasks remain unchecked.
 
 ## Phase 4: Browser Interface
 
