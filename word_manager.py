@@ -33,7 +33,10 @@ class WordManager:
     @staticmethod
     def _load_words(path: Path) -> tuple[str, ...]:
         try:
-            lines = path.read_text(encoding="utf-8").splitlines()
+            # Text I/O normalizes LF, CRLF, and CR to '\n'. Unlike splitlines(),
+            # splitting only there keeps embedded control/Unicode separators
+            # inside an entry so validation rejects it instead of inventing words.
+            lines = path.read_text(encoding="utf-8").split("\n")
         except (OSError, UnicodeError) as error:
             raise WordListError(f"Cannot read word list '{path}'.") from error
 

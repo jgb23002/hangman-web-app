@@ -6,6 +6,7 @@ Existing Chrome: add --browser-channel=chrome to the pytest command.
 """
 
 from threading import Thread
+from urllib.parse import urlsplit
 
 import pytest
 from playwright.sync_api import expect
@@ -13,6 +14,56 @@ from werkzeug.serving import make_server
 
 from server import create_app
 from word_manager import WordManager
+
+
+pytestmark = pytest.mark.browser
+
+
+@pytest.fixture(autouse=True)
+def no_uncaught_browser_runtime_errors(page, context):
+    errors = []
+
+    def watch(tab):
+        tab.on("pageerror", lambda error: errors.append(str(error)))
+
+    watch(page)
+    context.on("page", watch)
+    yield
+    context.remove_listener("page", watch)
+    assert errors == [], f"Uncaught browser JavaScript errors: {errors}"
+
+
+@pytest.fixture
+def restartable_server(tmp_path):
+    for difficulty, word in {
+        "easy": "apple", "medium": "balloon", "hard": "refrigerator"
+    }.items():
+        (tmp_path / f"{difficulty}.txt").write_text(word + "\n", encoding="utf-8")
+    manager = WordManager(tmp_path)
+
+    def start(port):
+        application = create_app({"TESTING": True}, word_manager=manager)
+        listener = make_server("127.0.0.1", port, application, threaded=True)
+        thread = Thread(target=listener.serve_forever, daemon=True)
+        thread.start()
+        return listener, thread
+
+    listener, thread = start(0)
+    port = listener.server_port
+
+    def restart():
+        nonlocal listener, thread
+        listener.shutdown()
+        listener.server_close()
+        thread.join(timeout=5)
+        listener, thread = start(port)
+
+    try:
+        yield f"http://127.0.0.1:{port}", restart
+    finally:
+        listener.shutdown()
+        listener.server_close()
+        thread.join(timeout=5)
 
 
 @pytest.fixture(scope="module")
@@ -50,6 +101,8 @@ def new_game(page):
     state = result.value.json()
     expect(page.locator("#round-badge")).to_contain_text(state["difficulty"].upper())
     expect(page.get_by_role("button", name="Guess A", exact=True)).to_be_enabled()
+    expect(page.locator(".letter-key:enabled")).to_have_count(26)
+    expect(page.locator("#revealed-answer")).to_have_text("")
     return state
 
 
@@ -413,3 +466,96 @@ def test_error_responses_keep_progress_and_do_not_render_raw_bodies(
     expect(page.locator("#revealed-answer")).to_have_text("")
     page.get_by_role("button", name="Refresh current game").click()
     expect(page.get_by_role("button", name="Guess Z", exact=True)).to_be_enabled()
+
+
+def test_frontend_uses_the_three_required_endpoints_with_expected_json(page, live_url):
+    calls = []
+
+    def record(request):
+        if request.url.startswith(live_url + "/api/"):
+            calls.append((
+                request.method,
+                urlsplit(request.url).path,
+                request.post_data_json if request.method == "POST" else None,
+            ))
+
+    page.on("request", record)
+    state = start_game(page, live_url, "medium")
+    guess(page, "l")
+    url = f'/api/games/{state["game_id"]}'
+    with page.expect_response(lambda response: response.url == live_url + url):
+        page.get_by_role("button", name="Refresh current game").click()
+    expect(page.get_by_role("button", name="Guess A", exact=True)).to_be_enabled()
+    assert calls == [
+        ("POST", "/api/games", {"difficulty": "medium"}),
+        ("POST", url + "/guess", {"letter": "l"}),
+        ("GET", url, None),
+    ]
+
+
+def test_frontend_renders_supplied_state_without_predicting_letter_correctness(page, live_url):
+    initial = start_game(page, live_url, "medium")
+    # This is a contract-valid API fixture for a different server-selected word.
+    # The browser must follow it rather than predict the Python fixture's answer.
+    supplied = {
+        **initial,
+        "pattern": "z _ _ _ _ _ _",
+        "guessed_letters": ["z"],
+        "incorrect_letters": [],
+        "remaining_guesses": 6,
+    }
+    page.route(
+        "**/api/games/*/guess", lambda route: route.fulfill(json=supplied), times=1
+    )
+    page.get_by_role("button", name="Guess Z", exact=True).click()
+    expect(page.locator('[data-letter="z"]')).to_have_class("letter-key is-used")
+    assert page.locator(".letter-slot").all_text_contents() == ["z"] + ["_"] * 6
+    expect(page.locator("#remaining")).to_have_text("6")
+    expect(page.locator("#incorrect-guesses")).to_have_text("None yet")
+    expect(page.locator(".hangman-part.is-visible")).to_have_count(0)
+    expect(page.locator("#answer")).to_be_hidden()
+
+
+def test_two_browser_games_remain_independent_through_completion_and_restart(
+    page, context, live_url
+):
+    first = start_game(page, live_url, "easy")
+    other = context.new_page()
+    try:
+        second = start_game(other, live_url, "medium")
+        second_progress = guess(other, "l", method="mouse")
+        for letter in "aple":
+            state = guess(page, letter, method="mouse")
+        assert state["status"] == "won"
+        fresh = new_game(page)
+        assert len({first["game_id"], second["game_id"], fresh["game_id"]}) == 3
+
+        with other.expect_response(lambda response: response.url.endswith(second["game_id"])) as refreshed:
+            other.get_by_role("button", name="Refresh current game").click()
+        assert refreshed.value.json() == second_progress
+        expect(other.locator("#previous-guesses")).to_have_text("l")
+        for letter in "cdefgh":
+            state = guess(other, letter, method="mouse")
+        assert state["status"] == "lost"
+
+        with page.expect_response(lambda response: response.url.endswith(fresh["game_id"])) as unchanged:
+            page.get_by_role("button", name="Refresh current game").click()
+        assert unchanged.value.json() == fresh
+        expect(page.locator("#previous-guesses")).to_have_text("None yet")
+        expect(page.locator("#remaining")).to_have_text("6")
+        expect(page.locator("#answer")).to_be_hidden()
+    finally:
+        other.close()
+
+
+def test_browser_recovers_after_the_http_application_restarts(page, restartable_server):
+    url, restart = restartable_server
+    previous = start_game(page, url)
+    guess(page, "p")
+    restart()
+    page.get_by_role("button", name="Refresh current game").click()
+    expect(page.locator("#status-title")).to_contain_text("no longer available")
+    expect(page.locator("#remaining")).to_have_text("—")
+    expect(page.locator(".letter-key:disabled")).to_have_count(26)
+    fresh = new_game(page)
+    assert previous["game_id"] != fresh["game_id"]

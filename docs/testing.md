@@ -1,4 +1,259 @@
-# Browser implementation audit — October 26, 2026
+# Phase 5 — Testing and Debugging
+
+Verification date: October 26, 2026. The complete suite passed **296 tests**:
+**296 passed, 0 failed, 0 errors, 0 skipped**. Parametrized cases are counted
+individually; running the same case in multiple commands does not increase this
+total.
+
+| Module | Cases passed |
+| --- | ---: |
+| `tests/test_game.py` | 78 |
+| `tests/test_words.py` | 76 |
+| `tests/test_api.py` | 102 |
+| `tests/test_browser.py` | 40 |
+| **Total** | **296** |
+
+## Test isolation and commands
+
+Ordinary engine, vocabulary, and API tests use Python objects, temporary files,
+and Flask's in-process test client. They require no Gunicorn process, Render
+service, production URL, listening server, or browser binary.
+`tests/conftest.py` rejects socket connections and listeners in those tests.
+`pytest.ini` registers the `browser` marker; only the explicit browser
+integration tests are exempt from that guard.
+
+Run the ordinary tests:
+
+```sh
+.venv/bin/python -m pytest -m "not browser"
+```
+
+Executed result: **256 passed, 40 browser cases deselected**. Deselection here
+is intentional test selection, not a skipped case in the complete run.
+
+Run everything, including the browser integration tests:
+
+```sh
+.venv/bin/python -m pytest --browser-channel=chrome
+```
+
+Executed result: **296 passed**. JUnit XML independently reported 296 cases,
+0 failures, 0 errors, and 0 skips. Reports/artifacts were written to a temporary
+directory outside the repository. The browser tests use a temporary loopback
+Flask server and fixed, server-side test vocabulary. All browser/server fixtures
+were closed at teardown. No external live service was used. Automated viewport
+checks covered 1280×1000, 1024×768, 768×1024, 390×844, and 320×740. A test fixture
+checked for uncaught JavaScript errors across every browser page, while normal
+responsive flows also checked Console errors; intentionally induced network/HTTP
+failures were handled as test inputs.
+
+For a new environment, install `requirements.txt`. Use an installed Google
+Chrome with `--browser-channel=chrome`, or run
+`python -m playwright install chromium` and omit that channel argument.
+
+Additional executed checks passed:
+
+```sh
+node --check static/app.js
+git diff --check
+.venv/bin/python -m pip --disable-pip-version-check --no-cache-dir check
+```
+
+The JavaScript interpreter is only a syntax-check tool; the application still
+uses vanilla HTML/CSS/JavaScript served by Flask.
+
+## Defect found and fixed in Phase 5
+
+The word loader used `str.splitlines()`, which interprets several embedded
+control characters and Unicode separators as additional line boundaries.
+A malformed entry such as `rab\vbit` could silently become the two accepted
+words `rab` and `bit`, rather than raising an invalid-entry error.
+
+Eight new regression cases failed before the fix. The loader now splits at LF
+after Python text I/O has normalized normal LF, CRLF, and CR file endings.
+Embedded non-file separators stay inside their entry and are rejected by the
+ASCII-letter validation, with the correct filename and line number. Three
+additional newline-format cases verify continued LF/CRLF/CR support and confirm
+the original files are not rewritten.
+
+No assertions were weakened or cases skipped to resolve the failures. The
+engine, Flask server, frontend, vocabulary contents, and dependencies were
+unchanged in this phase. Earlier browser-audit fixes remain covered by regression
+tests in the historical record below.
+
+## Coverage of the requested 38 cases
+
+Test names below identify representative coverage; parametrized tests contain
+multiple input cases.
+
+| # | Required behavior | Verification |
+| --- | --- | --- |
+| 1 | Correct letter | Game: `test_correct_guess_reveals_all_positions_without_costing_an_attempt` |
+| 2 | Incorrect letter | Game: `test_incorrect_guesses_each_cost_one_attempt` |
+| 3 | Repeated letters in a word | Game: repeated-position test above; browser mouse/keyboard flow |
+| 4 | Uppercase/lowercase | Game: `test_uppercase_word_and_guesses_are_normalized`; API correct/incorrect guesses |
+| 5 | Empty guesses | Game: `test_invalid_guesses_leave_existing_state_unchanged`, empty-string case |
+| 6 | Numeric guesses | Same game test, numeric/string-numeric cases; API invalid letters |
+| 7 | Symbol guesses | Same game test, punctuation cases; API invalid letters |
+| 8 | Multiple characters | Same game test, multi-character cases; API invalid letters |
+| 9 | Duplicate guesses | Game: `test_duplicate_guesses_are_rejected_without_state_changes` |
+| 10 | Loss on sixth miss | Game: `test_loss_occurs_on_exactly_the_sixth_incorrect_guess` |
+| 11 | Win after unique letters | Game: `test_complete_win_reveals_answer_only_on_final_guess` |
+| 12 | No guesses after either outcome | Game: `test_finished_games_reject_further_guesses_without_changes` |
+| 13 | Hide active answer | Game: win/loss progression and JSON-serialization tests |
+| 14 | Reveal completed answer | Game: complete win/loss and every-status serialization tests |
+| 15 | Load Easy | Words: `test_loads_each_difficulty`, Easy parameter |
+| 16 | Load Medium | Same words test, Medium parameter |
+| 17 | Load Hard | Same words test, Hard parameter |
+| 18 | Invalid difficulty | Words: `test_rejects_invalid_difficulties`, both public methods |
+| 19 | Empty lists | Words: `test_rejects_empty_or_blank_only_lists` |
+| 20 | Invalid entries | Words: invalid-entry, UTF-8, and embedded-separator regressions |
+| 21 | Remove duplicates | Words: `test_normalizes_words_skips_blanks_and_removes_duplicates` |
+| 22 | Random choice within difficulty | Words: membership and controlled first/last-choice tests |
+| 23 | Valid creation | API: `test_create_returns_complete_safe_initial_state` |
+| 24 | Invalid difficulty | API: `test_invalid_difficulty_does_not_create_a_game` |
+| 25 | Different game IDs | API: `test_ids_are_unique_and_games_are_independent`; collision regression |
+| 26 | Retrieve state | API: `test_get_returns_current_state_without_modifying_it` |
+| 27 | Missing game returns 404 | API: `test_unknown_games_return_404`, GET and POST parameters |
+| 28 | Valid guesses | API: `test_correct_and_incorrect_guesses_use_engine_rules` |
+| 29 | Invalid guesses | API: `test_invalid_letters_do_not_change_the_game` |
+| 30 | Duplicate guesses | API: `test_duplicates_are_consistently_rejected`; concurrent-duplicate test |
+| 31 | Malformed JSON | API: `test_malformed_json_has_a_clear_error`, both POST endpoints |
+| 32 | Hide active API answer | API: initial-state, complete-game progression, and error-disclosure tests |
+| 33 | Reveal API answer only at end | API: `test_full_games_reveal_answers_only_after_completion`, both outcomes |
+| 34 | Completed games reject guesses | Same API test; mixed last-life/partial-pattern regression |
+| 35 | Three JavaScript REST endpoints | Browser: `test_frontend_uses_the_three_required_endpoints_with_expected_json` records actual methods, paths, and payloads |
+| 36 | No independent browser answer selection | Reviewed `static/app.js` request/render flow; browser supplied-state test verifies rendering follows the API rather than predicting a letter's correctness |
+| 37 | Identify manual-only behavior | Pending manual procedures below distinguish automated Chrome/viewport evidence from hands-on verification |
+| 38 | Detailed manual checklist | Each procedure below gives steps and expected results; none is claimed as executed |
+
+Additional Phase 5 coverage includes a win on the last life after invalid and
+duplicate guesses, a loss after correct positions were revealed, four
+simultaneous duplicate API submissions through independent test clients,
+completed-game isolation, and two browser games remaining independent through
+win/loss, refresh, and restart. A further browser test stops and recreates its
+local HTTP listener with a fresh application on the same port, verifies that the
+old game ID returns 404, and starts a new playable game.
+
+The frontend contract test records exactly these requests for its controlled
+flow: `POST /api/games` with only `difficulty`,
+`POST /api/games/{id}/guess` with only `letter`, and
+`GET /api/games/{id}`. Code review confirmed selection remains in Python;
+JavaScript reads public response fields, validates response shape, and renders
+server-supplied patterns, counters, and statuses.
+
+## Manual test setup — not executed in this phase
+
+Use `.venv/bin/python server.py` and open `http://127.0.0.1:5000` for normal
+random-vocabulary play. For repeatable manual expectations, the optional fixture
+below uses temporary server-side words on port 5001. It adds no public
+answer-selection endpoint and changes no project word files.
+
+```sh
+.venv/bin/python - <<'PY'
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from server import create_app
+from word_manager import WordManager
+
+with TemporaryDirectory(prefix="hangman-manual-") as directory:
+    vocabulary = Path(directory)
+    for difficulty, word in {
+        "easy": "apple",
+        "medium": "balloon",
+        "hard": "refrigerator",
+    }.items():
+        (vocabulary / f"{difficulty}.txt").write_text(word + "\n", encoding="utf-8")
+    application = create_app(word_manager=WordManager(vocabulary))
+    application.run(host="127.0.0.1", port=5001, debug=False, use_reloader=False)
+PY
+```
+
+Open `http://127.0.0.1:5001` when using that fixture. Stop it with Ctrl+C.
+This is a manual test harness, not a dependency of ordinary pytest tests. Its
+setup and expected mask lengths were validated in-process without starting the
+manual HTTP server or interacting with a browser. Physical devices need a URL
+reachable from that device; the loopback URLs above refer to the development
+computer.
+
+## Detailed pending manual checklist
+
+All items below are **not run**. Record date, browser/version, OS/device, viewport,
+actual result, and any console/network evidence when someone executes them.
+
+- [ ] **Start each difficulty.** Select Easy, Medium, and Hard and click New Game.
+  With the manual fixture, expect 5, 7, and 12 masked slots respectively, six
+  remaining misses, no history, no body parts, and an enabled alphabet. Check the
+  badge matches the new game's difficulty.
+- [ ] **Mouse and physical keyboard.** In Medium, click L, then type uppercase A.
+  Expect `_ a l l _ _ _`, history `l · a`, six misses remaining, disabled A/L,
+  and no body parts. Type L again and try its disabled button: history, counter,
+  and network request count must stay unchanged.
+- [ ] **Invalid keys and ordinary shortcuts.** Try digits, punctuation, held keys,
+  Ctrl/Cmd shortcuts, and typing while a difficulty radio has focus. Expect no
+  invalid guess submissions, no consumed attempts, and working browser shortcuts.
+- [ ] **Complete a win.** In a fresh Medium game, guess B, A, L, O, N. Expect
+  repeated positions to appear together, then `won`, answer BALLOON, and all
+  letter buttons disabled. Further clicks/letters must send no guess requests.
+- [ ] **All six drawing stages and a loss.** In a fresh Medium game, guess
+  C, D, E, F, G, H. Expect remaining counts 5, 4, 3, 2, 1, 0 and exactly one
+  additional part each time: head, body, left arm, right arm, left leg, right leg.
+  The fifth miss must still be playing; the sixth must show the loss and BALLOON.
+- [ ] **Win and lose at every level.** Repeat both outcomes for each fixture.
+  Winning unique letters are A/P/L/E for Easy, B/A/L/O/N for Medium, and
+  R/E/F/I/G/A/T/O for Hard. Six misses can be B/C/D/F/G/H for Easy,
+  C/D/E/F/G/H for Medium, and B/C/D/H/J/K for Hard.
+- [ ] **Restart and two tabs.** After both outcomes, start another game without
+  reloading. Confirm a new ID, cleared answer/history/drawing, fresh mask/counter,
+  and enabled letters. Play in two tabs, finish/restart one, then Refresh the
+  other: it must retain its own ID and progress.
+- [ ] **Keyboard navigation and focus.** Use Tab/Shift+Tab, skip link, radio-arrow
+  keys, Enter/Space on New Game and alphabet buttons. Confirm visible focus,
+  sensible next-letter/recovery focus, and preserved focus if you move to a
+  different control during a slow request.
+- [ ] **Chrome Developer Tools HTTP/JSON.** In Network, inspect all three API
+  methods/paths, JSON request fields, status codes, and response fields.
+  Creation must return 201, successful GET/guess 200, invalid/duplicate requests
+  400, unknown IDs 404, and unsupported POST content types 415. Confirm `word`
+  is absent throughout active play and present only after an outcome. Review
+  Console for unexplained errors; do not count intentional offline failures as
+  unexplained defects.
+- [ ] **Offline, slow, and interrupted requests.** Enable Network offline or
+  throttling, submit a guess, and restore the connection. The old confirmed
+  state must remain, guessing must pause until Refresh succeeds, and duplicate
+  submissions must be blocked. During a delayed guess, choose New Game:
+  its fresh board must survive any late old response.
+- [ ] **Server restart.** With a game active, stop and restart the local server.
+  Refresh should report that the game is unavailable and offer New Game.
+  A fresh round should work with a new ID.
+- [ ] **Physical mobile devices and orientation.** Test real iOS Safari and
+  Android Chrome taps, portrait/landscape, scrolling, text enlargement, and
+  long Hard masks. The automated 320–1280 px viewport checks do not certify
+  physical touch or mobile-browser behavior.
+- [ ] **Other browsers, zoom, and motion preference.** Check desktop Safari or
+  Firefox, 200% zoom, readable contrast, visible focus, and reduced-motion OS
+  preferences. Look for clipped word slots, keys, status text, or refresh controls.
+- [ ] **Screen reader.** With VoiceOver or NVDA, verify the actual spoken pattern,
+  last guess, counter, errors, outcome, and final answer; check repetition and
+  focus transitions. Automated accessibility-tree assertions do not verify speech.
+
+## Remaining limitations and Phase 5 status
+
+No confirmed blocking gameplay/API/answer-disclosure defect remains in the
+executed checks. Games are intentionally process-local and disappear on restart;
+deployment must use one worker/instance until shared storage is introduced.
+Word lists are cached when a WordManager is constructed. Automated browser
+coverage used installed Chrome and emulated viewports, not physical devices.
+
+Hands-on browser play, Developer Tools panel inspection, cross-browser/device
+checks, and spoken screen-reader testing remain pending. The corresponding
+Phase 5 checkboxes stay open. This phase's automated work is verified; the
+entire phase must not be claimed complete until its remaining manual criteria
+are actually satisfied. No deployment or submission work was performed.
+
+---
+
+# Historical browser audit — October 26, 2026
 
 This audit compared the current HTML, CSS, and JavaScript with Phase 4 of
 `TODO.md` and the relevant browser, REST, and game-rule sections of

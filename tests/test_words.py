@@ -179,3 +179,24 @@ def test_selected_answers_stay_out_of_active_game_state(manager, monkeypatch, di
         assert state["status"] == "playing"
         assert "word" not in state
         assert selected_word not in json.dumps(state)
+
+
+@pytest.mark.parametrize(
+    "separator", ["\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029"],
+    ids=["vertical-tab", "form-feed", "file-separator", "group-separator", "record-separator", "next-line", "unicode-line", "unicode-paragraph"],
+)
+def test_embedded_non_file_line_separators_are_invalid_entries(word_directory, separator):
+    (word_directory / "medium.txt").write_text(
+        f"rabbit\nrab{separator}bit\n", encoding="utf-8"
+    )
+    with pytest.raises(WordListError, match="medium.txt.*line 2.*ASCII letters"):
+        WordManager(word_directory)
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n", "\r"], ids=["lf", "crlf", "cr"])
+def test_normal_text_file_newlines_are_supported_without_rewriting(word_directory, newline):
+    path = word_directory / "easy.txt"
+    original = f"Cat{newline}DOG{newline}cat{newline}".encode("ascii")
+    path.write_bytes(original)
+    assert WordManager(word_directory).words_for("easy") == ("cat", "dog")
+    assert path.read_bytes() == original

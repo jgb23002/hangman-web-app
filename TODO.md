@@ -282,39 +282,46 @@ Phases 1–4 must be complete, with their feature-level tests passing. This phas
 ### Files Involved
 
 - `tests/test_game.py`, `tests/test_words.py`, `tests/test_api.py` — automated backend coverage.
-- `tests/test_browser.py`, `tests/conftest.py` if needed — browser integration coverage.
+- `tests/test_browser.py` — separately marked browser integration coverage.
+- `tests/conftest.py`, `pytest.ini` — ordinary-test socket isolation and browser markers.
 - `docs/testing.md` — manual procedures, actual results, and resolved defects.
 - `game.py`, `word_manager.py`, `server.py`, `static/*` — fixes where defects are demonstrated.
 - `requirements.txt`, `TODO.md` — test dependencies and verified progress.
 
 ### Tasks
 
-- [ ] Review all in-scope requirements against the automated suite and add missing behavioral coverage.
-- [ ] Exercise correct and incorrect guesses, repeated letters in a word, duplicate guesses, invalid input, and uppercase input.
-- [ ] Verify win and loss paths, six-incorrect-guess behavior, and rejection of guesses after completion.
-- [ ] Verify New Game changes the game ID and resets every browser control and display.
-- [ ] Verify multiple games retain independent state through complete API and browser flows.
-- [ ] Add complete real-browser integration tests for start, guess, finish, and restart using controlled server-side fixtures.
-- [ ] Verify hidden-word security in active JSON, initial HTML, browser state, static resources, and error responses.
+- [x] Review all in-scope requirements against the automated suite and add missing behavioral coverage.
+- [x] Exercise correct and incorrect guesses, repeated letters in a word, duplicate guesses, invalid input, and uppercase input.
+- [x] Verify win and loss paths, six-incorrect-guess behavior, and rejection of guesses after completion.
+- [x] Verify New Game changes the game ID and resets every browser control and display.
+- [x] Verify multiple games retain independent state through complete API and browser flows.
+- [x] Add complete real-browser integration tests for start, guess, finish, and restart using controlled server-side fixtures.
+- [x] Verify hidden-word security in active JSON, initial HTML, browser state, static resources, and error responses.
 - [ ] Use Chrome Developer Tools Network and Console panels to inspect request methods, paths, JSON payloads, status codes, response fields, and JavaScript errors.
-- [ ] Test unknown game IDs and IDs invalidated by a server restart, failed network requests, non-JSON error responses, and server errors; display actionable feedback and permit a new game.
-- [ ] Check that pending requests cannot apply an old game's response to a newly created game.
+- [x] Test unknown game IDs and IDs invalidated by a server restart, failed network requests, non-JSON error responses, and server errors; display actionable feedback and permit a new game.
+- [x] Check that pending requests cannot apply an old game's response to a newly created game.
 - [ ] Record manual test steps and actual results in `docs/testing.md`, including tested browser and viewport sizes.
-- [ ] Fix confirmed defects, add meaningful regression tests, and rerun the affected tests plus the complete suite.
+- [x] Fix confirmed defects, add meaningful regression tests, and rerun the affected tests plus the complete suite.
 
 ### Testing Requirements
 
-- [ ] Run the complete automated suite, including real-browser tests, with no failing tests or unreported skips.
+- [x] Run the complete automated suite, including real-browser tests, with no failing tests or unreported skips.
 - [ ] Manually play Easy, Medium, and Hard games, observe both outcomes across the checks, and restart after completion.
-- [ ] Verify keyboard and pointer input, correct SVG progression, responsive layout, and error recovery.
+- [x] Verify keyboard and pointer input, correct SVG progression, responsive layout, and error recovery.
 - [ ] Confirm HTTP/JSON behavior and answer-disclosure rules directly in Chrome Developer Tools.
-- [ ] Review and resolve unexplained console errors and failed application requests.
+- [x] Review and resolve unexplained console errors and failed application requests.
 
 ### Completion Criteria
 
 - [ ] All in-scope features have appropriate automated or recorded manual verification.
-- [ ] The complete test suite passes and no known blocking gameplay, API, or answer-disclosure defect remains.
-- [ ] Testing notes accurately describe results and remaining limitations.
+- [x] The complete test suite passes and no known blocking gameplay, API, or answer-disclosure defect remains.
+- [x] Testing notes accurately describe results and remaining limitations.
+
+Verified on 2026-10-26: the full discovery command `.venv/bin/python -m pytest --browser-channel=chrome` passed **296 cases: 78 engine, 76 word-management, 102 API, and 40 browser tests; 0 failures, 0 errors, 0 skips**. JUnit XML confirmed the counts. The independent ordinary-test run `.venv/bin/python -m pytest -m "not browser"` passed **256 cases** with 40 browser cases deselected, while socket connections/listeners were blocked. Ordinary tests use Flask's in-process test client and temporary files; only marked browser integration tests start local HTTP listeners. No production service was used.
+
+One new defect was reproduced by eight failing regressions before repair: `splitlines()` silently accepted embedded control/Unicode separators as new word boundaries. Word loading now splits at normalized file newlines so those entries are rejected with their real filename/line; LF, CRLF, and CR files remain supported and unchanged on disk. Added coverage includes last-life validation, partial-pattern losses, concurrent duplicate API requests, completed-game isolation, exact frontend REST requests, API-authoritative rendering, independent browser tabs, and recovery after a stopped/recreated HTTP application. The Python engine, Flask server, frontend, dependencies, and vocabulary contents were preserved.
+
+[docs/testing.md](docs/testing.md) maps all 38 requested cases to evidence and provides a deterministic manual fixture plus a detailed checklist with expected results. JavaScript syntax, dependency consistency, and Git whitespace checks passed. Automated Chrome checks covered desktop/tablet/mobile viewports and reported no uncaught browser JavaScript errors. Hands-on play, actual Chrome Developer Tools panel inspection, and recording real manual outcomes have not been performed; their checkboxes and the overall verification completion criterion remain open. Phase 6 and Phase 7 are unchanged.
 
 ## Phase 6: GitHub and Render Deployment
 

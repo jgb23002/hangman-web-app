@@ -1,6 +1,8 @@
 """HTTP contract tests using isolated Flask apps and server-side word fixtures."""
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Barrier
 from uuid import UUID
 
 import pytest
@@ -307,3 +309,63 @@ def test_vocabulary_and_python_source_are_not_static_assets(client, path):
 def test_module_exports_a_production_importable_app():
     assert isinstance(server.app, Flask)
     assert server.app.debug is False
+
+
+def test_concurrent_duplicate_guesses_consume_only_one_attempt(
+    application, client, created_game
+):
+    # Each worker uses its own in-process Flask client, never a live server.
+    barrier = Barrier(4, timeout=5)
+    url = f'/api/games/{created_game["game_id"]}'
+
+    def submit(_):
+        with application.test_client() as worker_client:
+            barrier.wait()
+            response = worker_client.post(url + "/guess", json={"letter": "z"})
+            return response.status_code, response.get_json()
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        responses = list(executor.map(submit, range(4)))
+    assert sorted(status for status, _ in responses) == [200, 400, 400, 400]
+    state = client.get(url).get_json()
+    assert state["remaining_guesses"] == 5
+    assert state["guessed_letters"] == ["z"]
+    assert state["incorrect_letters"] == ["z"]
+    assert "word" not in state
+
+
+def test_last_life_and_partial_pattern_survive_invalid_requests(client, created_game):
+    url = f'/api/games/{created_game["game_id"]}'
+    for letter in "lcdefg":
+        assert client.post(url + "/guess", json={"letter": letter}).status_code == 200
+    before = client.get(url).get_json()
+    assert before["remaining_guesses"] == 1
+    assert before["pattern"] == "_ _ l l _ _ _"
+    for letter in ("L", "12", "!"):
+        assert_json_error(client.post(url + "/guess", json={"letter": letter}), 400)
+        assert client.get(url).get_json() == before
+    response = client.post(url + "/guess", json={"letter": "h"})
+    assert response.status_code == 200
+    state = response.get_json()
+    assert state["status"] == "lost"
+    assert state["pattern"] == before["pattern"]
+    assert state["remaining_guesses"] == 0
+    assert state["word"] == "balloon"
+    assert_json_error(client.post(url + "/guess", json={"letter": "a"}), 400)
+    assert client.get(url).get_json() == state
+
+
+def test_completed_games_remain_independent_when_a_new_game_starts(client):
+    winner = client.post("/api/games", json={"difficulty": "medium"}).get_json()
+    loser = client.post("/api/games", json={"difficulty": "easy"}).get_json()
+    for letter in "balon":
+        won = client.post(f'/api/games/{winner["game_id"]}/guess', json={"letter": letter}).get_json()
+    for letter in "bcdfgh":
+        lost = client.post(f'/api/games/{loser["game_id"]}/guess', json={"letter": letter}).get_json()
+    fresh = client.post("/api/games", json={"difficulty": "hard"}).get_json()
+    assert len({won["game_id"], lost["game_id"], fresh["game_id"]}) == 3
+    assert won["status"] == "won" and won["word"] == "balloon"
+    assert lost["status"] == "lost" and lost["word"] == "apple"
+    assert fresh["status"] == "playing" and "word" not in fresh
+    for state in (won, lost, fresh):
+        assert client.get(f'/api/games/{state["game_id"]}').get_json() == state

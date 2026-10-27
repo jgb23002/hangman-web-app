@@ -237,3 +237,36 @@ def test_one_unique_letter_can_complete_a_word(word):
     assert state["word"] == word
     assert state["remaining_guesses"] == 6
     assert state["guessed_letters"] == ["a"]
+
+
+def test_last_life_survives_rejected_guesses_until_a_valid_win():
+    game = HangmanGame("letter", "medium")
+    for letter in "abcdf":
+        game.guess(letter)
+    game.guess("T")
+    before = game.to_state()
+    assert before["pattern"] == "_ _ t t _ _"
+    assert before["remaining_guesses"] == 1
+
+    for invalid in ("t", "T", "", "12", "!"):
+        with pytest.raises(ValueError):
+            game.guess(invalid)
+        assert game.to_state() == before
+        assert "word" not in game.to_state()
+
+    for letter in "elr":
+        state = game.guess(letter)
+    assert state["status"] == "won"
+    assert state["remaining_guesses"] == 1
+    assert state["word"] == "letter"
+
+
+def test_loss_after_correct_guesses_preserves_revealed_positions(game):
+    game.guess("l")
+    for letter in "cdefgh":
+        state = game.guess(letter)
+    assert state["status"] == "lost"
+    assert state["pattern"] == "_ _ l l _ _ _"
+    assert state["remaining_guesses"] == 0
+    assert state["guessed_letters"] == list("lcdefgh")
+    assert state["word"] == "balloon"
