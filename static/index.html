@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#244c3d">
+  <meta name="description" content="A fresh take on classic Hangman. Choose your challenge and find the word, one letter at a time.">
+  <title>Hangman — a little wordplay</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23244c3d'/%3E%3Ctext x='20' y='28' text-anchor='middle' fill='%23fff' font-size='28' font-family='Georgia'%3EH%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#game">Skip to the game</a>
+  <div class="page-shell">
+    <header class="page-header">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">h.</span><span>A LITTLE WORDPLAY</span></div>
+      <p class="edition">THE CLASSIC LETTER GAME</p>
+    </header>
+
+    <main id="game" tabindex="-1">
+      <div class="introduction">
+        <p class="eyebrow">A FAMILIAR GAME. A FRESH WORD.</p>
+        <h1>Hangman<span>.</span></h1>
+        <p>Find the word, one letter at a time. You have six misses to spare.</p>
+      </div>
+
+      <div class="game-controls">
+        <fieldset class="difficulty-field">
+          <legend>Choose your challenge</legend>
+          <div class="difficulty-options">
+            <label><input type="radio" name="difficulty" value="easy" checked><span>Easy</span></label>
+            <label><input type="radio" name="difficulty" value="medium"><span>Medium</span></label>
+            <label><input type="radio" name="difficulty" value="hard"><span>Hard</span></label>
+          </div>
+        </fieldset>
+        <button class="new-game" id="new-game" type="button">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>
+          <span id="new-game-label">New Game</span>
+        </button>
+      </div>
+
+      <section class="game-board" id="game-board" aria-label="Hangman game">
+        <aside class="drawing-panel" aria-label="Drawing and remaining guesses">
+          <div class="scene-heading"><span class="eyebrow">ONE LETTER AT A TIME</span><span class="scene-dot" aria-hidden="true"></span></div>
+          <svg class="hangman" viewBox="0 0 280 290" role="img" aria-labelledby="drawing-title drawing-description">
+            <title id="drawing-title">Hangman drawing</title>
+            <desc id="drawing-description">No incorrect guesses yet.</desc>
+            <g class="scaffold" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M37 257h205M76 253V35h124v32M77 73l36-36"/>
+              <path class="ground-detail" d="M40 267h38m95 0h36"/>
+            </g>
+            <g class="figure" fill="none" stroke-linecap="round">
+              <circle class="hangman-part" data-part="0" cx="200" cy="91" r="24"/>
+              <path class="hangman-part" data-part="1" d="M200 115v65"/>
+              <path class="hangman-part" data-part="2" d="M200 132l-36 27"/>
+              <path class="hangman-part" data-part="3" d="M200 132l36 27"/>
+              <path class="hangman-part" data-part="4" d="M200 180l-30 40"/>
+              <path class="hangman-part" data-part="5" d="M200 180l30 40"/>
+            </g>
+            <g class="little-plant" fill="none" stroke-linecap="round" aria-hidden="true">
+              <path d="M113 254v-24m0 13c-17 0-17-15-17-15s17 0 17 15Zm0-8c0-15 16-19 16-19s2 17-16 19Z"/>
+            </g>
+          </svg>
+          <div class="remaining-block">
+            <div><strong id="remaining">—</strong><span>incorrect guesses<br>remaining</span></div>
+            <div class="life-pips" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          </div>
+          <p class="scene-note">A little patience. A little intuition.</p>
+        </aside>
+
+        <div class="play-panel">
+          <div class="round-header">
+            <span class="round-badge" id="round-badge">READY TO PLAY</span>
+            <button class="refresh-game" id="refresh-game" type="button" aria-label="Refresh current game" title="Refresh current game" disabled>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 7a6.4 6.4 0 1 0 .3 5M16 3v4h-4"/></svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div class="word-section">
+            <h2 class="eyebrow" id="word-heading">THE MYSTERY WORD</h2>
+            <div class="word-display is-empty" id="word-display" role="img" aria-label="Start a new game to reveal the word length.">Your next word awaits.</div>
+            <p class="word-detail" id="word-detail">Choose a difficulty. Make your first move.</p>
+          </div>
+
+          <div class="status-box" id="status-box" data-tone="idle" role="status" aria-live="polite" aria-atomic="true">
+            <span class="status-symbol" id="status-symbol" aria-hidden="true">↗</span>
+            <div><p class="status-title" id="status-title">Ready when you are</p><p id="status-message">Select New Game to begin.</p><p class="answer" id="answer" hidden>The word was <strong id="revealed-answer"></strong>.</p><p class="sr-only" id="game-progress"></p></div>
+          </div>
+
+          <section class="keyboard-section" aria-labelledby="keyboard-heading">
+            <div class="section-label"><h2 id="keyboard-heading">Pick a letter</h2><span id="keyboard-hint">CLICK OR TYPE</span></div>
+            <div class="alphabet" id="alphabet" role="group" aria-label="Letter keyboard" aria-busy="false"></div>
+          </section>
+
+          <div class="guess-history">
+            <section aria-labelledby="previous-heading"><h2 id="previous-heading">PREVIOUS GUESSES</h2><p class="letter-history" id="previous-guesses">None yet</p></section>
+            <section aria-labelledby="incorrect-heading"><h2 id="incorrect-heading">INCORRECT LETTERS</h2><p class="letter-history incorrect-history" id="incorrect-guesses">None yet</p></section>
+          </div>
+        </div>
+      </section>
+      <noscript><p class="no-script">Enable JavaScript to play this game.</p></noscript>
+      <footer class="page-footer"><span><kbd>A</kbd>–<kbd>Z</kbd> on your keyboard work, too.</span><span>Take your time. Make each letter count.</span></footer>
+    </main>
+  </div>
+</body>
+</html>

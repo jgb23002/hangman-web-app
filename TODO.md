@@ -223,43 +223,55 @@ Phases 1–3 must be complete and passing. The browser presents server state and
 - `static/index.html` — page structure, controls, and SVG Hangman.
 - `static/style.css` — styling and responsive layout.
 - `static/app.js` — input, fetch requests, and state rendering.
-- `server.py` — serve the browser page at `/` and its static assets.
-- `tests/test_browser.py`, `tests/conftest.py` if needed — real-browser tests and fixtures.
+- `server.py` — existing page and asset routes, preserved without backend changes.
+- `tests/test_browser.py` — real-browser tests, temporary Flask HTTP server, and controlled server-side vocabulary fixtures.
 - `requirements.txt`, `TODO.md` — browser test tooling and verified progress.
 
 ### Tasks
 
-- [ ] Build the HTML, CSS, and JavaScript interface and serve it through Flask.
-- [ ] Add labeled Easy, Medium, and Hard difficulty controls and a New Game button.
-- [ ] Create games using `fetch()` with `POST /api/games` and keep the returned game ID for subsequent requests.
-- [ ] Use `GET /api/games/{game_id}` to retrieve and render the current game without starting another one.
-- [ ] Display the masked word, all previous guesses, incorrect guesses, remaining guesses, and current game status.
-- [ ] Add a clickable A–Z alphabet keyboard and physical keyboard letter input.
-- [ ] Route both input methods through the same guess-request flow; ignore modifier shortcuts and typing within unrelated form controls.
-- [ ] Disable guessed letters, block duplicate submissions while a request is pending, and disable guessing after completion.
-- [ ] Draw six Hangman body parts in SVG, updating only from the incorrect-guess count returned by the server.
-- [ ] Display win and loss messages and reveal the answer received from the server after completion.
-- [ ] Implement restart through a new game ID and reset the pattern, keyboard, drawing, guess history, and messages.
-- [ ] Make the layout usable at common desktop and mobile widths with readable labels and usable controls.
-- [ ] Show loading and request-error feedback; update guesses and remaining attempts only from accepted server state.
-- [ ] Ignore delayed responses from an earlier game after New Game is selected, and prevent overlapping submissions from corrupting the displayed state.
-- [ ] Keep the selected hidden word and all game-rule decisions out of active browser state and source.
-- [ ] Select and document real-browser test tooling, add its dependencies and setup steps, and write initial automated interaction tests as the interface is built.
+- [x] Build the HTML, CSS, and JavaScript interface and serve it through Flask.
+- [x] Add labeled Easy, Medium, and Hard difficulty controls and a New Game button.
+- [x] Create games using `fetch()` with `POST /api/games` and keep the returned game ID for subsequent requests.
+- [x] Use `GET /api/games/{game_id}` to retrieve and render the current game without starting another one.
+- [x] Display the masked word, all previous guesses, incorrect guesses, remaining guesses, and current game status.
+- [x] Add a clickable A–Z alphabet keyboard and physical keyboard letter input.
+- [x] Route both input methods through the same guess-request flow; ignore modifier shortcuts and typing within unrelated form controls.
+- [x] Disable guessed letters, block duplicate submissions while a request is pending, and disable guessing after completion.
+- [x] Draw six Hangman body parts in SVG, updating only from the incorrect-guess count returned by the server.
+- [x] Display win and loss messages and reveal the answer received from the server after completion.
+- [x] Implement restart through a new game ID and reset the pattern, keyboard, drawing, guess history, and messages.
+- [x] Make the layout usable at common desktop and mobile widths with readable labels and usable controls.
+- [x] Show loading and request-error feedback; update guesses and remaining attempts only from accepted server state.
+- [x] Ignore delayed responses from an earlier game after New Game is selected, and prevent overlapping submissions from corrupting the displayed state.
+- [x] Keep the selected hidden word and all game-rule decisions out of active browser state and source.
+- [x] Select and document real-browser test tooling, add its dependencies and setup steps, and write initial automated interaction tests as the interface is built.
 
 ### Testing Requirements
 
-- [ ] Verify Flask serves `/`, JavaScript, and CSS successfully.
-- [ ] Run real-browser tests for difficulty selection, game creation, mouse guesses, physical keyboard guesses, and GET-based state rendering.
-- [ ] Verify drawing progression, history, remaining guesses, and disabled keys match server responses.
-- [ ] Verify completed-game feedback and that New Game resets all displayed and interactive state.
+- [x] Verify Flask serves `/`, JavaScript, and CSS successfully.
+- [x] Run real-browser tests for difficulty selection, game creation, mouse guesses, physical keyboard guesses, and GET-based state rendering.
+- [x] Verify drawing progression, history, remaining guesses, and disabled keys match server responses.
+- [x] Verify completed-game feedback and that New Game resets all displayed and interactive state.
 - [ ] Manually check desktop and mobile layouts and usable keyboard input.
-- [ ] Run the existing backend suite and initial browser tests successfully.
+- [x] Run the existing backend suite and initial browser tests successfully.
 
 ### Completion Criteria
 
-- [ ] A player can complete and restart a game entirely through the browser.
-- [ ] Both input methods, SVG drawing, responsive layout, and API communication work together.
-- [ ] Initial browser tests and all earlier tests pass; active answers remain on the server.
+- [x] A player can complete and restart a game entirely through the browser.
+- [x] Both input methods, SVG drawing, responsive layout, and API communication work together.
+- [x] Initial browser tests and all earlier tests pass; active answers remain on the server.
+
+Implementation: the vanilla HTML page provides labeled difficulty radios, New Game and Refresh controls, a six-part SVG drawing, masked-letter slots, history, counters, and an A–Z keyboard. CSS uses an original ivory, forest-green, and clay palette, responsive grid layouts, visible focus indicators, and reduced-motion support. Normal text and button palette contrast was checked; desktop and mobile screenshots were visually inspected at 1280×1000, 390×844, and 320×740. The narrow-screen grid was corrected and is protected by internal-overflow regression checks.
+
+Event flow: New Game sends `POST /api/games` with the selected difficulty. Letter clicks and physical-keyboard events share one `POST /api/games/{id}/guess` handler. Refresh retrieves the existing game through `GET /api/games/{id}`. All pattern, history, counter, drawing, and outcome updates render server responses; the browser does not choose words, determine correct letters, calculate remaining guesses, or decide win/loss. Answer text is retained and displayed only after a server-reported outcome.
+
+Only one guess request can be pending. New Game cancels an earlier request; operation-identity checks also prevent delayed responses and cleanup callbacks from changing a newer game. Network failures, unreadable responses, server errors, and request timeouts show feedback. A failed guess pauses guessing until Refresh confirms server state, because an interrupted response does not prove the guess was rejected. Missing games prompt a new round. The existing Python engine, word manager, Flask server, and word lists were unchanged.
+
+Browser tooling: `pytest-playwright` was added to `requirements.txt`. For a fresh environment, run `python -m pip install -r requirements.txt`, then `python -m playwright install chromium`. Run the complete suite with `python -m pytest tests/test_game.py tests/test_words.py tests/test_api.py tests/test_browser.py`. An existing Google Chrome installation can be used by adding `--browser-channel=chrome`; that is the verified configuration here. The test fixture starts and stops its own temporary Flask server and keeps deterministic answers in Python test fixtures, outside static assets.
+
+Verified on 2026-10-26 using Python 3.13.1, pytest 9.1.1, pytest-playwright 0.10.0, Playwright 1.64.1, and Chrome 156.0.8078.48: `.venv/bin/python -m pytest tests/test_game.py tests/test_words.py tests/test_api.py tests/test_browser.py --browser-channel=chrome` — **256 passed (240 existing backend tests and 16 browser tests)**. Browser checks cover initial controls, all difficulties, both input methods, keyboard-only navigation, GET refresh, history/drawing/counters, win and loss, restart, duplicate/modifier/form-input suppression, network recovery, pending guesses, stale responses after New Game, and desktop/mobile overflow with no console errors in normal responsive flows. JavaScript syntax and Git whitespace checks passed. Temporary verification servers and browsers were stopped. Phase 5 and later tasks remain unchecked.
+
+Audit follow-up (2026-10-26): confirmed and fixed lost keyboard focus, incomplete response validation, incorrect clearing of an existing round after a creation-request 404, and missing live-region progress information. The complete suite now passes **276 tests (240 backend and 36 automated Chrome browser tests)**, with JavaScript syntax, dependency, whitespace, and checked contrast pairs also passing. [docs/testing.md](docs/testing.md) records the reproduced issues, fixes, checks actually executed, and remaining manual procedures. The hands-on manual browser checkbox is reopened: automated viewport/keyboard checks, accessibility-tree assertions, and earlier screenshot review do not certify physical-device or spoken screen-reader behavior. Later-phase checkboxes are unchanged.
 
 ## Phase 5: Testing and Debugging
 
