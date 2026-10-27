@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+# Configuration only. Applying this Blueprint later creates/deploys the service.
+services:
+  - type: web
+    name: hangman-web-app
+    runtime: python
+    plan: free
+    numInstances: 1
+    buildCommand: python -m pip install -r requirements.txt
+    startCommand: gunicorn --workers 1 --threads 1 --bind 0.0.0.0:$PORT server:app
+    healthCheckPath: /
+    autoDeployTrigger: "off"

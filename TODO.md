@@ -334,23 +334,23 @@ Phases 1–5 must be complete and passing. Deploy this project's own tested sour
 - `.git/` — local version-control metadata.
 - `.gitignore`, `README.md`, `requirements.txt` — repository hygiene and reproducible setup.
 - `server.py` — importable Flask application for Gunicorn.
-- `render.yaml` if used, or documented Render dashboard settings in `README.md`.
-- `.python-version` if used — selected Python runtime.
+- `render.yaml` — prepared Python web-service Blueprint, plus matching README dashboard settings.
+- `.python-version` — tested Python 3.13.1 runtime.
 - `docs/testing.md`, `TODO.md` — deployment verification and progress.
 - External resources: this project's GitHub repository and Render web service.
 
 ### Tasks
 
 - [ ] Review this project's Git repository and commit history; verify that commits describe the student's original implementation and commit any remaining intended work.
-- [ ] Verify `.gitignore` excludes virtual environments, Python/test caches, local secrets, and operating-system files.
+- [x] Verify `.gitignore` excludes virtual environments, Python/test caches, local secrets, and operating-system files.
 - [ ] Create the student's own GitHub repository, configure its remote, and push the intended branch.
 - [ ] Review tracked files to ensure source, word lists, tests, and documentation are included and secrets and local environments are excluded.
-- [ ] Complete `requirements.txt` with tested application and test dependencies, including Flask, Gunicorn, pytest, and the selected browser test tooling; record tested versions and the selected Python runtime.
-- [ ] Write a README describing assignment scope, architecture, rules, setup, local startup, browser use, automated/manual tests, and the three REST endpoints with example requests and responses.
-- [ ] Document validation policies, status codes, answer-disclosure behavior, and the limits of in-memory storage.
-- [ ] Expose an importable Flask application or factory and document the verified Gunicorn entry point.
-- [ ] Configure Gunicorn with debug disabled and binding to `0.0.0.0` on Render's assigned `PORT`; record the build and start commands in `render.yaml` or the README.
-- [ ] Use one worker and one service instance while game storage is process-local; document that games are lost on process restart.
+- [x] Complete `requirements.txt` with tested application and test dependencies, including Flask, Gunicorn, pytest, and the selected browser test tooling; record tested versions and the selected Python runtime.
+- [x] Write a README describing assignment scope, architecture, rules, setup, local startup, browser use, automated/manual tests, and the three REST endpoints with example requests and responses.
+- [x] Document validation policies, status codes, answer-disclosure behavior, and the limits of in-memory storage.
+- [x] Expose an importable Flask application or factory and document the verified Gunicorn entry point.
+- [x] Configure Gunicorn with debug disabled and binding to `0.0.0.0` on Render's assigned `PORT`; record the build and start commands in `render.yaml` or the README.
+- [x] Configure one worker and one service instance while game storage is process-local; document that games are lost on process restart.
 - [ ] Create a Render web service connected to this project's GitHub repository and configure its dependency installation and Gunicorn startup.
 - [ ] Check build and runtime logs and resolve deployment failures.
 - [ ] Obtain a public HTTPS URL and add it and the correct GitHub URL to the README.
@@ -358,8 +358,9 @@ Phases 1–5 must be complete and passing. Deploy this project's own tested sour
 
 ### Testing Requirements
 
+- [x] Verify a clean prepared-source copy and fresh virtual environment can install the pinned requirements, run all tests, and start the documented Flask/Gunicorn entry points locally.
 - [ ] Verify a fresh clone can install dependencies, run the documented test commands, and start the app using the README.
-- [ ] Smoke-test the production Gunicorn entry point locally, including API requests and static assets.
+- [x] Smoke-test the production Gunicorn entry point locally, including API requests and static assets.
 - [ ] Open the public HTTPS URL in a fresh browser session and verify the page, assets, and all three endpoints.
 - [ ] Smoke-test a deployed browser game through completion and restart; leave the full deployment verification matrix for Phase 7.
 - [ ] Verify active deployed responses omit the word and production errors do not expose debugging details.
@@ -370,6 +371,14 @@ Phases 1–5 must be complete and passing. Deploy this project's own tested sour
 - [ ] GitHub contains this project's intended source, tests, word lists, dependencies, and usable documentation.
 - [ ] Render serves the tested Flask application and browser client at a working public HTTPS URL.
 - [ ] Fresh-install and deployment smoke checks pass and repository/deployment links are accurate.
+
+Documentation/configuration prepared and locally verified on 2026-10-26. `README.md` describes the actual implementation, all three REST endpoints and validated example JSON, setup/tests, vocabulary provenance, AI-assisted methodology, known limits, and future Render steps. GitHub and public-URL fields remain explicit placeholders. The imported third-party packages were reviewed; `requirements.txt` pins Flask 3.1.3, Werkzeug 3.1.9, Gunicorn 26.2.0, pytest 9.1.1, pytest-playwright 0.10.0, and Playwright 1.64.1. `.python-version` selects the tested Python 3.13.1.
+
+`render.yaml` passed Render's published JSON Schema. It declares a Python web service on the free plan, one instance, root health check, a requirements-install build, and `gunicorn --workers 1 --threads 1 --bind 0.0.0.0:$PORT server:app`. Automatic deployments are disabled; creating/applying a Blueprint later still starts its initial deployment. The Blueprint was validated locally, not submitted to Render. No credentials, service creation, deployment, commit, or push was performed.
+
+A separate clean-source copy and new virtual environment installed all pinned versions and passed `pip check` and **296 tests (0 failures, 0 errors, 0 skips)**. Real local HTTP checks passed for both Flask and the exact prepared Gunicorn command, covering static assets, all difficulties, creation, retrieval, guessing through completion, answer-disclosure rules, and rejected requests. API examples were checked against Flask's test client. Static files and word lists loaded from an unrelated working directory. Ignore checks covered environments, caches, browser artifacts, `.env` variants, and private keys; those paths were not tracked. All temporary servers stopped. See [docs/testing.md](docs/testing.md#phase-6-local-documentation-and-configuration-verification).
+
+These checks used a prepared source copy, not a fresh remote clone of an already-pushed revision. Remote-clone verification, Render Linux build/runtime validation, public HTTPS checks, actual URL replacement, and deployed-commit verification remain pending. Earlier manual-test items and Phase 7 are unchanged.
 
 ## Phase 7: Final Verification and Submission
 

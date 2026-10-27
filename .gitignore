@@ -6,11 +6,15 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+test-results/
+playwright-report/
 
 # Environment variables and secrets
 .env
 .env.*
 !.env.example
+*.pem
+*.key
 
 # Editor and OS files
 .DS_Store

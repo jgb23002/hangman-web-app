@@ -363,3 +363,49 @@ have passed.
 
 No Phase 5 or deployment/submission checklist item is marked complete by this
 audit record.
+
+## Phase 6 local documentation and configuration verification
+
+On October 26, 2026, the documentation and deployment-configuration portion was
+checked without deploying. Source, imports, and current dependency metadata were
+reviewed before writing README.md. Six direct packages were pinned to their
+tested versions: Flask 3.1.3, Werkzeug 3.1.9, Gunicorn 26.2.0, pytest 9.1.1,
+pytest-playwright 0.10.0, and Playwright 1.64.1. Python 3.13.1 is selected in
+`.python-version`.
+
+Executed local checks:
+
+- A clean prepared-source copy and new virtual environment installed only the
+  application/test requirements; each of the six installed versions matched its
+  pin. `pip check` reported no broken requirements.
+- The complete suite in that clean environment passed **296 cases: 78 engine,
+  76 word-management, 102 API, and 40 browser tests**, with 0 failures, 0 errors,
+  and 0 skips. The command was `python -m pytest --browser-channel=chrome` with
+  temporary artifact and JUnit XML output paths.
+- `render.yaml` was parsed and validated locally against the JSON Schema from
+  `https://render.com/schema/render.yaml.json`. YAML/schema tooling was installed
+  only into a separate temporary validation directory, not app dependencies.
+  Checks confirmed a Python web service, free plan, one instance, `/` health
+  check, disabled automatic deployment, and the one-worker Gunicorn command.
+- Both `python server.py` and the prepared Gunicorn command started against the
+  clean copy. Actual local HTTP requests verified `/`, JavaScript/CSS, all three
+  difficulties, create/get/guess, a complete game, active-answer omission,
+  terminal answer disclosure, malformed JSON, unknown IDs, and post-game errors.
+  The temporary processes and their workers were stopped afterward.
+- From an unrelated working directory, the clean environment imported the app,
+  served the exact static-file bytes, loaded 169/156/181 words for the three
+  difficulties, and created games through Flask's test client.
+- Every README JSON example was compared with the real API using temporary
+  server-side vocabulary and normalized illustrative IDs.
+- Git ignore checks verified environments, Python/pytest caches, browser test
+  artifacts, `.env` variants, and `.pem`/`.key` files are excluded; none of those
+  paths was tracked. `.env.example` remains permitted as a future public template.
+
+The deployment metadata matches Render's [Blueprint reference](https://render.com/docs/blueprint-spec),
+[Python-version rules](https://render.com/docs/python-version), and
+[port requirements](https://render.com/docs/web-services#port-binding).
+These checks establish local configuration/schema validity, not a successful
+Render Linux build or hosted deployment. No Render service was created, no
+source was pushed, no credentials were added, and no public URL was verified.
+README repository/deployment URL placeholders remain unfilled. The clean source
+copy is not represented as a fresh clone of an already-published revision.
