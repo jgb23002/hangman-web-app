@@ -409,3 +409,20 @@ Render Linux build or hosted deployment. No Render service was created, no
 source was pushed, no credentials were added, and no public URL was verified.
 README repository/deployment URL placeholders remain unfilled. The clean source
 copy is not represented as a fresh clone of an already-published revision.
+
+## October 28 production verification
+
+The public application at <https://hangman-web-app-6fy1.onrender.com> was accessed
+using direct HTTPS requests and actual Chrome automation. All 296 local tests
+passed again, with 0 failures, errors, or skips. Live checks passed creation,
+retrieval, guessing, errors, independence, answer-disclosure rules, and win/loss/
+restart flows for all three difficulties. Public HTML/JS/CSS matched local files.
+The configured Gunicorn startup and module-relative asset/word paths also passed
+local checks. No application defect was confirmed or application code changed.
+
+See [production_readiness.md](production_readiness.md) for the full observations,
+scope of credential inspection, corrected documentation, and final checklist.
+Hands-on manual procedures above remain unexecuted; automated Chrome sessions do
+not complete them. Render dashboard logs/settings and the exact deployed commit
+remain owner checks. The report, representative prompt selection, demonstration,
+official-rubric check, and submission package are still pending in the repository.

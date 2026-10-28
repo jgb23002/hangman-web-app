@@ -5,12 +5,14 @@ web-based Hangman game. This independent implementation combines a Python game
 engine, Flask REST API, and responsive vanilla HTML/CSS/JavaScript client.
 The server owns the answer, guesses, and outcome; the browser renders its state.
 
-| Project links | Status |
+| Project links | URL |
 | --- | --- |
-| GitHub repository | **TODO: replace with the actual repository URL** |
-| Public Render application | **TODO: replace with the verified HTTPS URL after deployment** |
+| GitHub repository | [jgb23002/hangman-web-app](https://github.com/jgb23002/hangman-web-app) |
+| Public Render application | [Play Hangman](https://hangman-web-app-6fy1.onrender.com) |
 
-Deployment configuration is prepared; no public deployment is claimed here.
+The public application was verified over HTTPS and in Chrome on October 28,
+2026. See [production readiness](docs/production_readiness.md) for the executed
+checks, remaining manual verification, and submission deliverables.
 
 ## Features and stack
 
@@ -22,7 +24,7 @@ Deployment configuration is prepared; no public deployment is claimed here.
 - Input validation, independent game IDs, and automated engine/API/browser tests.
 
 **Stack:** Python, Flask, Werkzeug, Gunicorn, HTML, CSS, JavaScript, SVG, pytest,
-and Playwright. Git/GitHub manage source; Render is the intended host.
+and Playwright. Git/GitHub manage source; Render hosts the application.
 The frontend has no framework, build step, or separate frontend server.
 Terminal clients, bots, evaluations, scoring, leaderboards, and replay are outside
 this assignment's scope.
@@ -62,6 +64,7 @@ hangman-web-app/
 │   └── test_browser.py
 ├── docs/
 │   ├── testing.md            # Results, requirement mapping, manual checklist
+│   ├── production_readiness.md # Live verification and submission checklist
 │   ├── evidence/             # Recorded test output
 │   └── cursor_transcript.md  # Instructor's historical reference transcript
 ├── SPECIFICATION.md          # Larger original specification
@@ -77,9 +80,11 @@ hangman-web-app/
 
 Prerequisites: **Python 3.13.1** (the tested version), Git, and a modern browser.
 Full browser tests additionally need Google Chrome or Playwright's Chromium.
-Run these commands from a clone or copy of this project:
+Clone the repository and run these commands (skip the clone step if you already
+have a local copy):
 
 ```sh
+git clone https://github.com/jgb23002/hangman-web-app.git
 cd hangman-web-app
 python3 -m venv .venv
 source .venv/bin/activate
@@ -238,18 +243,23 @@ python -m playwright install chromium
 python -m pytest
 ```
 
-Alternatively, use installed Google Chrome: `python -m pytest
---browser-channel=chrome`. Tests marked `browser` start and stop temporary local
+Alternatively, use installed Google Chrome:
+
+```sh
+python -m pytest --browser-channel=chrome
+```
+
+Tests marked `browser` start and stop temporary local
 Flask servers; ordinary tests block socket connections/listeners and use Flask's
 test client and temporary word files. They do not depend on a deployed service.
 
-The recorded Phase 5 run passed **296 cases** (256 ordinary and 40 browser), with
-zero failures, errors, or skips. See [docs/testing.md](docs/testing.md) for actual
+The October 28 production review reran **296 cases** (256 ordinary and 40 browser),
+with zero failures, errors, or skips. See [docs/testing.md](docs/testing.md) for actual
 results, the 38-case requirements mapping, and the detailed pending manual
 checklist. Hands-on device, screen-reader, and Developer Tools checks remain
 open; automated browser testing does not certify them.
 
-## Prepared Render deployment
+## Render deployment and updates
 
 The repository includes [render.yaml](render.yaml) for a **Python web service**,
 not a static site. It specifies the free plan, one instance, `/` as the health
@@ -268,20 +278,21 @@ root and avoid a conflicting `PYTHON_VERSION` setting. Debug is disabled by the
 application. No database, secret key, or credential is required by this app.
 Browser binaries are needed for local browser tests, not to serve the website.
 
-**Future deployment steps — not performed in this phase:**
+For the existing service, review these settings in the Render dashboard. To
+re-create the service, use a Python Web Service with the commands above, the
+repository root as Root Directory, one instance, and `/` as its health check.
+Alternatively, a new Blueprint can use `render.yaml`; applying it can create or
+update a service.
 
-1. Commit and push the reviewed source, word lists, static files, and configuration
-   to your own GitHub repository; replace the repository placeholder above.
-2. When ready to deploy, create a Render Blueprint from that repository and
-   review `render.yaml`. Applying/creating the service starts an initial deploy.
-   Alternatively, create a Python Web Service with the same build/start commands,
-   free plan, one instance, and health path `/`.
-3. The Blueprint sets `autoDeployTrigger: "off"`. For dashboard-created services,
-   also disable automatic deploys if you want the same behavior. Later updates
-   can be published intentionally with **Manual Deploy**.
-4. Inspect Render's build/runtime logs, then verify the assigned HTTPS URL,
-   static assets, all three endpoints, complete games, and restart behavior.
-   Add the verified public URL above and record the deployed commit.
+1. Commit and push reviewed changes to the GitHub branch connected to Render.
+2. The Blueprint sets `autoDeployTrigger: "off"`. If the existing service uses
+   this setting, publish application updates with **Manual Deploy**. Check the
+   dashboard setting for a service created separately from the Blueprint.
+3. Inspect build/runtime logs and compare Render's deployed commit with the
+   intended GitHub revision. Public HTTP responses do not establish that commit
+   or prove which worker/runtime settings are active.
+4. After an application update, verify HTTPS, assets, all three endpoints, both
+   outcomes, and New Game. Process restarts/redeploys discard in-memory games.
 
 For a local production-server check, run
 `gunicorn --workers 1 --threads 1 --bind 127.0.0.1:8000 server:app` and open
@@ -291,8 +302,9 @@ Configuration follows Render's [Flask deployment guide](https://render.com/docs/
 [Blueprint reference](https://render.com/docs/blueprint-spec),
 [Python version settings](https://render.com/docs/python-version), and
 [port-binding requirements](https://render.com/docs/web-services#port-binding).
-The prepared configuration still requires an actual Render build and deployment
-to verify the hosted environment.
+Live HTTP and Chrome checks passed on October 28, 2026. Dashboard build logs,
+the exact deployed commit, and actual runtime settings were not accessible in
+that review and still need owner verification.
 
 ## Known limitations
 
@@ -304,7 +316,16 @@ to verify the hosted environment.
 - Automated browser coverage uses Chrome/Chromium; real-device, other-browser,
   screen-reader, and manual DevTools checks remain pending.
 - No accounts, database persistence, or additional competition features are
-  implemented. Public-host availability and performance await deployment checks.
+  implemented. The production smoke test is not a load or long-term uptime test.
+
+## Submission status
+
+The application, source, word lists, tests, and deployment configuration are
+present. The repository does not yet contain the 1–2 page development report
+with 2–3 representative prompts, or a 2–3 minute demonstration recording/link.
+Confirm the official rubric and finish those deliverables before submission.
+The [readiness checklist](docs/production_readiness.md#final-readiness-checklist)
+also identifies manual checks and documentation changes still to publish.
 
 ## AI-assisted development
 

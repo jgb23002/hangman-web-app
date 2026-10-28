@@ -343,8 +343,8 @@ Phases 1–5 must be complete and passing. Deploy this project's own tested sour
 
 - [ ] Review this project's Git repository and commit history; verify that commits describe the student's original implementation and commit any remaining intended work.
 - [x] Verify `.gitignore` excludes virtual environments, Python/test caches, local secrets, and operating-system files.
-- [ ] Create the student's own GitHub repository, configure its remote, and push the intended branch.
-- [ ] Review tracked files to ensure source, word lists, tests, and documentation are included and secrets and local environments are excluded.
+- [x] Create the student's own GitHub repository, configure its remote, and push the intended branch.
+- [x] Review tracked files to ensure source, word lists, tests, and documentation are included and secrets and local environments are excluded.
 - [x] Complete `requirements.txt` with tested application and test dependencies, including Flask, Gunicorn, pytest, and the selected browser test tooling; record tested versions and the selected Python runtime.
 - [x] Write a README describing assignment scope, architecture, rules, setup, local startup, browser use, automated/manual tests, and the three REST endpoints with example requests and responses.
 - [x] Document validation policies, status codes, answer-disclosure behavior, and the limits of in-memory storage.
@@ -353,23 +353,24 @@ Phases 1–5 must be complete and passing. Deploy this project's own tested sour
 - [x] Configure one worker and one service instance while game storage is process-local; document that games are lost on process restart.
 - [ ] Create a Render web service connected to this project's GitHub repository and configure its dependency installation and Gunicorn startup.
 - [ ] Check build and runtime logs and resolve deployment failures.
-- [ ] Obtain a public HTTPS URL and add it and the correct GitHub URL to the README.
+- [x] Obtain a public HTTPS URL and add it and the correct GitHub URL to the README.
 - [ ] Record the deployed commit and verify that Render is running the intended version; reserve the complete final deployment review for Phase 7.
 
 ### Testing Requirements
 
 - [x] Verify a clean prepared-source copy and fresh virtual environment can install the pinned requirements, run all tests, and start the documented Flask/Gunicorn entry points locally.
-- [ ] Verify a fresh clone can install dependencies, run the documented test commands, and start the app using the README.
+- [x] Verify a fresh clone can install dependencies, run the documented test commands, and start the app using the README.
 - [x] Smoke-test the production Gunicorn entry point locally, including API requests and static assets.
-- [ ] Open the public HTTPS URL in a fresh browser session and verify the page, assets, and all three endpoints.
-- [ ] Smoke-test a deployed browser game through completion and restart; leave the full deployment verification matrix for Phase 7.
-- [ ] Verify active deployed responses omit the word and production errors do not expose debugging details.
-- [ ] Record actual deployment checks and any observed startup/restart limitations in `docs/testing.md`.
+- [x] Open the public HTTPS URL in a fresh browser session and verify the page, assets, and all three endpoints.
+- [x] Smoke-test a deployed browser game through completion and restart; leave the full deployment verification matrix for Phase 7.
+- [x] Verify active deployed responses omit the word and tested 400/404/405/415 responses contain JSON errors without debugging details.
+- [ ] Confirm production debug/runtime settings and unexpected-error logs in the Render dashboard; live 500 errors were not deliberately induced.
+- [x] Record actual deployment checks and any observed startup/restart limitations in `docs/testing.md`.
 
 ### Completion Criteria
 
 - [ ] GitHub contains this project's intended source, tests, word lists, dependencies, and usable documentation.
-- [ ] Render serves the tested Flask application and browser client at a working public HTTPS URL.
+- [x] Render serves the tested Flask application and browser client at a working public HTTPS URL.
 - [ ] Fresh-install and deployment smoke checks pass and repository/deployment links are accurate.
 
 Documentation/configuration prepared and locally verified on 2026-10-26. `README.md` describes the actual implementation, all three REST endpoints and validated example JSON, setup/tests, vocabulary provenance, AI-assisted methodology, known limits, and future Render steps. GitHub and public-URL fields remain explicit placeholders. The imported third-party packages were reviewed; `requirements.txt` pins Flask 3.1.3, Werkzeug 3.1.9, Gunicorn 26.2.0, pytest 9.1.1, pytest-playwright 0.10.0, and Playwright 1.64.1. `.python-version` selects the tested Python 3.13.1.
@@ -379,6 +380,10 @@ Documentation/configuration prepared and locally verified on 2026-10-26. `README
 A separate clean-source copy and new virtual environment installed all pinned versions and passed `pip check` and **296 tests (0 failures, 0 errors, 0 skips)**. Real local HTTP checks passed for both Flask and the exact prepared Gunicorn command, covering static assets, all difficulties, creation, retrieval, guessing through completion, answer-disclosure rules, and rejected requests. API examples were checked against Flask's test client. Static files and word lists loaded from an unrelated working directory. Ignore checks covered environments, caches, browser artifacts, `.env` variants, and private keys; those paths were not tracked. All temporary servers stopped. See [docs/testing.md](docs/testing.md#phase-6-local-documentation-and-configuration-verification).
 
 These checks used a prepared source copy, not a fresh remote clone of an already-pushed revision. Remote-clone verification, Render Linux build/runtime validation, public HTTPS checks, actual URL replacement, and deployed-commit verification remain pending. Earlier manual-test items and Phase 7 are unchanged.
+
+Current review, 2026-10-28: the user supplied the actual [Render URL](https://hangman-web-app-6fy1.onrender.com) and [GitHub repository](https://github.com/jgb23002/hangman-web-app). Direct HTTPS and Chrome verified live wins, losses, and restarts at every difficulty, all three endpoints, validation, answer privacy, counters, drawing, and responsive viewports. All 296 local tests passed again. GitHub `main` matched application commit `e70800b71046a349f0cc35107ce8b735774b6774`; public static files matched local bytes. A fresh published clone installed dependencies and passed all tests in the preceding same-day audit, and its documented Flask startup was checked in this review. The configured Gunicorn entry point, module-relative paths, and current Render schema also passed.
+
+README links and deployment wording are corrected locally. [docs/production_readiness.md](docs/production_readiness.md) records the complete review and final checklist; [docs/testing.md](docs/testing.md#october-28-production-verification) links that evidence. These documentation updates have not been committed or pushed. Dashboard logs, exact deployed SHA, and actual runtime/worker settings were not accessible, so those tasks remain unchecked. No application code change or deployment was needed. Earlier dated records above describe historical verification, not the current deployment status.
 
 ## Phase 7: Final Verification and Submission
 
@@ -398,7 +403,7 @@ Phases 1–6 must be complete, including a public deployment that passes its ini
 
 ### Tasks
 
-- [ ] Verify deployed Easy, Medium, and Hard selection, game creation, GET-based retrieval, both input methods, drawing, previous and remaining guesses, completion, and restart.
+- [x] Verify deployed Easy, Medium, and Hard selection, game creation, GET-based retrieval, both input methods, drawing, previous and remaining guesses, completion, and restart.
 - [ ] Verify both deployed win and loss paths, invalid/duplicate guesses, independent games, hidden-word protection, error recovery, and desktop/mobile layouts.
 - [ ] Run final automated tests against the final source revision and record the results.
 - [ ] Review the GitHub repository, correct branch, README instructions, dependency list, and public deployment link.
@@ -414,8 +419,8 @@ Phases 1–6 must be complete, including a public deployment that passes its ini
 
 ### Testing Requirements
 
-- [ ] Run the final engine, word management, API, and real-browser suites successfully.
-- [ ] Perform a final public-URL smoke test in a fresh session, including one finished game and a restart.
+- [x] Run the final engine, word management, API, and real-browser suites successfully.
+- [x] Perform a final public-URL smoke test in a fresh session, including one finished game and a restart.
 - [ ] Verify report length, prompt count, recording length, link destinations, and reviewer access.
 - [ ] Review the prepared HuskyCT materials against the rubric and verify that uploaded/exported files open correctly.
 
